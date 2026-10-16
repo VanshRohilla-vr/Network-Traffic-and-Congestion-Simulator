@@ -1,1 +1,44 @@
+void addPacket(int id)
+    {
+        generated++;
+
+        if (count == capacity)
+        {
+            showBufferStatus();
+
+            cout << "Packet " << id
+                 << " dropped: No vacant slot available!\n";
+
+            lost++;
+            return;
+        }
+
+        rear = (rear + 1) % capacity;
+        queue[rear] = Packet(id, rand() % 900 + 100);
+        count++;
+
+        cout << "Packet " << id << " arrived\n";
+
+        if (count * 100 >= capacity * 80)
+        {
+            cout << "WARNING: Buffer occupancy is high!\n";
+            congestion++;
+        }
+    }
+
+    void processPacket()
+    {
+        if (count == 0)
+        {
+            cout << "Buffer is empty\n";
+            return;
+        }
+
+        cout << "Processed Packet "
+             << queue[front].id << endl;
+
+        front = (front + 1) % capacity;
+        count--;
+        processed++;
+    }
 
