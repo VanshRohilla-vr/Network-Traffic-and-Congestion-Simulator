@@ -1,1 +1,44 @@
 
+void showBufferStatus()
+    {
+        cout << "\nBuffer Status:\n";
+        cout << "Occupied Slots : " << count << endl;
+        cout << "Vacant Slots   : " << capacity - count << endl;
+
+        if (count == capacity)
+            cout << "ALERT: Buffer is FULL!\n";
+        else if (count * 100 >= capacity * 80)
+            cout << "WARNING: Buffer is nearly full!\n";
+    }
+
+    void showBuffer()
+    {
+        cout << "Packets in Buffer: ";
+
+        if (count == 0)
+            cout << "Empty";
+
+        int index = front;
+
+        for (int i = 0; i < count; i++)
+        {
+            cout << queue[index].id << " ";
+            index = (index + 1) % capacity;
+        }
+
+        cout << endl;
+    }
+
+    void showResults()
+    {
+        cout << "\n===== FINAL RESULTS =====\n";
+        cout << "Generated Packets : " << generated << endl;
+        cout << "Processed Packets : " << processed << endl;
+        cout << "Lost Packets      : " << lost << endl;
+        cout << "Packets Remaining : " << count << endl;
+        cout << "Congestion Alerts : " << congestion << endl;
+
+        if (generated > 0)
+            cout << "Packet Loss Rate  : "
+                 << lost * 100.0 / generated << "%\n";
+    }
