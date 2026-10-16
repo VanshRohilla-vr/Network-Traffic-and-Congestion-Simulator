@@ -1,1 +1,44 @@
+class Packet
+{
+public:
+    int id;
+    int size;
+
+    Packet()
+    {
+        id = 0;
+        size = 0;
+    }
+
+    Packet(int i, int s)
+    {
+        id = i;
+        size = s;
+    }
+};
+
+
+class Router
+{
+    Packet *queue;
+    int capacity;
+    int front, rear, count;
+
+    int generated, processed, lost, congestion;
+
+public:
+    Router(int c)
+    {
+        capacity = c;
+        queue = new Packet[capacity];
+
+        front = 0;
+        rear = -1;
+        count = 0;
+
+        generated = 0;
+        processed = 0;
+        lost = 0;
+        congestion = 0;
+    }
 
