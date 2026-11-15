@@ -1,304 +1,266 @@
-
 #include <iostream>
 #include <cstdlib>
-#include <ctime>
 using namespace std;
+
 // Packet class
-class Packet
-{
+class Packet{
 public:
-    int id;
-    int size;
-
-    Packet()
-    {
-        id = 0;
-        size = 0;
-    }
-
-    Packet(int i, int s)
-    {
-        id = i;
-        size = s;
+    int id, size;
+    Packet(int i=0,int s=0){
+        id=i;
+        size=s;
     }
 };
 
 // Router class
-class Router
-{
-    Packet *queue;
-    int capacity;
-    int front, rear, count;
-
-    int generated, processed, lost, congestion;
-
+class Router{
 public:
-    Router(int cap)
-    {
-        capacity = cap;
-        queue = new Packet[capacity];
+    Packet *queue;
+    int capacity, front, rear, count;
+    int bandwidth, processed;
 
-        front = 0;
-        rear = -1;
-        count = 0;
+    Router(int c, int b){
+        capacity=c;
+        bandwidth=b;
+        queue=new Packet[capacity];
+        front=0;
+        rear=-1;
+        count=0;
+        processed=0;
+    }
 
-        generated = 0;
-        processed = 0;
-        lost = 0;
-        congestion = 0;
+    // Add packet to circular queue
+    void addPacket(Packet p){
+        rear=(rear + 1) % capacity;
+        queue[rear]=p;
+        count++;
+        cout<<"Packet " << p.id << " added.\n";
+    }
+
+    // Process packets according to bandwidth
+    void processPackets(){
+        int used=0;
+        while(count>0){
+            if(used+queue[front].size>bandwidth)
+                break;
+            cout<<"Processed Packet "<<queue[front].id << endl;
+            used +=queue[front].size;
+            processed++;
+            front=(front + 1) % capacity;
+            count--;
+        }
+
+        if(count==0){
+            front=0;
+            rear=-1;
+        }
+
+        cout << "Bandwidth Used: "
+             << used << "/" << bandwidth << " bytes\n";
+    }
+
+    // Display router status
+    void showStatus(int n){
+        cout<< "\nRouter " << n << endl;
+        cout<< "Occupied: " << count << "/" << capacity << endl;
+        cout<< "Vacant: " << capacity - count << endl;
+
+        cout<< "Packets: ";
+
+        if(count==0)
+            cout << "Empty";
+        else{
+            int i=front;
+
+            for(int j =0; j <count; j++)
+            {
+                cout<<queue[i].id << " ";
+                i=(i + 1) % capacity;
+            }
+        }
+
+        cout << endl;
     }
 
     ~Router()
     {
         delete[] queue;
     }
+};
 
-    // Display buffer occupancy
-    void showBufferStatus()
-    {
-        cout << "\nBuffer Occupied: " << count
-             << "/" << capacity;
+// Network class
+class Network{
+public:
+    Router r1, r2, r3;
+    Router *routers[3];
 
-        cout << "\nBuffer Vacant: "
-             << capacity - count;
+    int generated, redirected, dropped;
 
-        if (count == capacity)
-        {
-            cout << "\nBUFFER FULL!";
-        }
-        else if (count * 100 >= capacity * 80)
-        {
-            cout << "\nWARNING: Buffer is nearly full!";
-        }
+    Network(int c, int b1, int b2, int b3): r1(c, b1), r2(c, b2), r3(c, b3){
+        routers[0]=&r1;
+        routers[1]=&r2;
+        routers[2]=&r3;
 
-        cout << endl;
+        generated=0;
+        redirected=0;
+        dropped=0;
     }
 
-    // Add packet to router buffer
-    void addPacket(int id)
-    {
+    // Find least occupied available router
+    int findNextHop(){
+        int best = -1;
+        for(int i= 1;i < 3;i++){
+            if(routers[i]->count==routers[i]->capacity){
+                continue;
+            }
+            if(best==-1|| routers[i]->count<routers[best]->count){
+                best = i;
+            }
+        }
+        return best;
+    }
+
+    // Decide where packet should go
+    void routePacket(Packet p){
         generated++;
-
-        if (count == capacity)
-        {
-            showBufferStatus();
-
-            cout << "Packet " << id
-                 << " dropped due to buffer overflow!\n";
-
-            lost++;
-            return;
+        if (r1.count*100<r1.capacity*80){
+            r1.addPacket(p);
         }
-
-        rear = (rear + 1) % capacity;
-
-        queue[rear] = Packet(id, rand() % 900 + 100);
-
-        count++;
-
-        cout << "Packet " << id
-             << " arrived. Size: "
-             << queue[rear].size << " bytes\n";
-
-        if (count * 100 >= capacity * 80)
-        {
-            cout << "CONGESTION WARNING!\n";
-            congestion++;
+        else{
+            cout << "Router 1 reached 80% occupancy.\n";
+            int next = findNextHop();
+            if (next!=-1){
+                cout<<"Redirecting Packet "<< p.id<<" to Router "<< next+1<<endl;
+                routers[next]->addPacket(p);
+                redirected++;
+            }
+            else{
+                cout<<"All routers are full.\n";
+                cout<<"Packet " << p.id<<" dropped.\n";
+                dropped++;
+            }
         }
     }
-    // Process packet from router buffer
-    void processPacket()
-    {
-        if (count == 0)
-        {
-            cout << "No packet available to process.\n";
-            return;
+
+    // Process all routers
+    void processAllRouters(){
+        for (int i=0;i<3;i++){
+            cout<<"\nProcessing Router "<<i+1<<endl;
+            routers[i]->processPackets();
         }
-
-        cout << "Processing Packet "
-             << queue[front].id << endl;
-
-        front = (front + 1) % capacity;
-        count--;
-        processed++;
     }
-    // Display packets currently in buffer
-    void showBuffer()
-    {
-        if (count == 0)
-        {
-            cout << "Router buffer is empty.\n";
-            return;
+
+    // Display all router statuses
+    void showNetworkStatus(){
+        for(int i=0;i<3;i++){
+            routers[i]->showStatus(i+1);
         }
-
-        cout << "Packets in buffer: ";
-
-        int index = front;
-
-        for (int i = 0; i < count; i++)
-        {
-            cout << queue[index].id << " ";
-            index = (index + 1) % capacity;
-        }
-
-        cout << endl;
     }
-    // Display final network statistics
-    void showResults()
-    {
-        cout << "\n========== FINAL RESULTS ==========\n";
 
-        cout << "Total Packets Generated: "
-             << generated << endl;
-
-        cout << "Packets Processed: "
-             << processed << endl;
-
-        cout << "Packets Lost: "
-             << lost << endl;
-
-        cout << "Packets Remaining in Buffer: "
-             << count << endl;
-
-        cout << "Congestion Warnings: "
-             << congestion << endl;
-
-        if (generated > 0)
-        {
-            double lossRate = (lost * 100.0) / generated;
-
-            cout << "Packet Loss Rate: "
-                 << lossRate << "%\n";
+    // Display final results
+    void showResults(){
+        int totalProcessed=0;
+        int remaining=0;
+        for (int i=0;i<3;i++){
+            totalProcessed+=routers[i]->processed;
+            remaining+=routers[i]->count;
         }
-        else
-        {
-            cout << "Packet Loss Rate: 0%\n";
+
+        cout<<"\n========== FINAL RESULTS ==========\n";
+
+        cout<<"Generated: " << generated << endl;
+        cout<<"Redirected: " << redirected << endl;
+        cout<<"Processed: " << totalProcessed << endl;
+        cout<<"Dropped: " << dropped << endl;
+        cout<<"Remaining: " << remaining << endl;
+
+        cout<<"\nPacket Accounting: ";
+
+        if(generated==totalProcessed+dropped+remaining){
+            cout<<"Correct";
         }
-        cout << "===================================\n";
+        else{
+            cout<<"Incorrect";
+        }
+        cout<<endl;
     }
 };
-// Traffic Pattern Controller
-int selectTrafficMode(int mode, int arrivals, int processing)
-{
-    int packets = arrivals;
 
-    switch (mode)
-    {
-        case 1:
-            // Low Traffic
-            packets = 1;
-            break;
-
-        case 2:
-            // Heavy Traffic
-            packets = processing + 3;
-            break;
-
-        case 3:
-            // Random Traffic
-            if (arrivals > 0)
-            {
-                packets = rand() % (arrivals + 1);
-            }
-            else
-            {
-                packets = 0;
-            }
-            break;
-
-        default:
-            packets = arrivals;
-    }
-
-    return packets;
+// Select traffic mode
+int selectTrafficMode(){
+    int choice;
+    cout<<"\n1. Low Traffic";
+    cout<<"\n2. High Traffic";
+    cout<<"\n3. Random Traffic";
+    cout<<"\nEnter choice: ";
+    cin>>choice;
+    return choice;
 }
 
+// Generate number of arriving packets
+int generateTraffic(int mode, int arrivals){
+    if(mode==1){
+        return 1;
+    }
+    if(mode==2){
+        return arrivals;
+    }
+    return rand() % (arrivals + 1);
+}
 // Main function
-int main()
-{
-    srand(static_cast<unsigned int>(time(0)));
-
-    int capacity, steps;
-    int arrivals, processing;
-    int mode;
-
-    cout << "===== NETWORK TRAFFIC AND CONGESTION SIMULATOR =====\n";
-
-    cout << "Enter router buffer capacity: ";
-    cin >> capacity;
-
-    cout << "Enter total simulation steps: ";
-    cin >> steps;
-
-    cout << "Enter base packet arrivals per step: ";
-    cin >> arrivals;
-
-    cout << "Enter packets processed per step: ";
-    cin >> processing;
-
-    if (capacity <= 0 || steps <= 0 ||
-        arrivals < 0 || processing < 0)
-    {
-        cout << "Invalid input! Please enter valid values.\n";
+int main(){
+    int capacity, b1, b2, b3;
+    int steps, arrivals;
+    cout<<"Enter buffer capacity: ";
+    cin>>capacity;
+    cout<<"Enter Router 1 bandwidth: ";
+    cin>>b1;
+    cout<<"Enter Router 2 bandwidth: ";
+    cin>>b2;
+    cout<<"Enter Router 3 bandwidth: ";
+    cin>>b3;
+    cout<<"Enter simulation steps: ";
+    cin>>steps;
+    cout<<"Enter maximum packet arrivals per step: ";
+    cin>>arrivals;
+    if(capacity<=0||b1<999||b2<999||b3<999||steps<0||arrivals<1){
+        cout<<"Invalid input!";
         return 0;
     }
 
-    cout << "\nSelect Traffic Mode:\n";
-    cout << "1. Low Traffic\n";
-    cout << "2. Heavy Traffic\n";
-    cout << "3. Random Traffic\n";
-    cout << "Enter your choice: ";
-    cin >> mode;
+    int mode=selectTrafficMode();
 
-    if (mode < 1 || mode > 3)
-    {
-        cout << "Invalid traffic mode!\n";
+    if(mode<1||mode>3){
+        cout<<"Invalid traffic mode!";
         return 0;
     }
+    Network network(capacity, b1, b2, b3);
+    int packetId=1;
+    for(int step=1;step<=steps;step++){
+        cout<<"\n\n========== STEP "<<step<<"==========\n";
 
-    Router router(capacity);
+        int newPackets=generateTraffic(mode, arrivals);
+        cout<<"New packets arriving: "<< newPackets << endl;
 
-    int id = 1;
-
-    // Simulation loop
-    for (int t = 1; t <= steps; t++)
-    {
-        cout << "\n========== TIME STEP "
-             << t << " ==========\n";
-
-        // Determine arrivals for this time step
-        int currentArrivals = selectTrafficMode(
-            mode, arrivals, processing
-        );
-
-        cout << "Packets arriving this step: "
-             << currentArrivals << endl;
-
-        // Packet arrival phase
-        cout << "\n--- PACKET ARRIVAL PHASE ---\n";
-
-        for (int i = 0; i < currentArrivals; i++)
-        {
-            router.addPacket(id);
-            id++;
+        // Generate and route packets
+        for(int i=0;i<newPackets;i++){
+            int size=rand() % 900 + 100;
+            Packet p(packetId, size);
+            cout<<"\nPacket "<<packetId<< " | Size: " << size << " bytes\n";
+            network.routePacket(p);
+            packetId++;
         }
+        cout<<"\n--- Buffer Status Before Processing ---\n";
+        network.showNetworkStatus();
 
-        router.showBufferStatus();
-        router.showBuffer();
+        cout<<"\n--- Processing Packets ---\n";
+        network.processAllRouters();
 
-        // Packet processing phase
-        cout << "\n--- PACKET PROCESSING PHASE ---\n";
-
-        for (int i = 0; i < processing; i++)
-        {
-            router.processPacket();
-        }
-
-        router.showBufferStatus();
-        router.showBuffer();
+        cout<<"\n--- Buffer Status After Processing ---\n";
+        network.showNetworkStatus();
     }
-    // Final results
-    router.showResults();
+
+    network.showResults();
 
     return 0;
 }
