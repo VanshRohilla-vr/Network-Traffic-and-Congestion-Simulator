@@ -1,44 +1,35 @@
-
-void showBufferStatus()
-    {
-        cout << "\nBuffer Status:\n";
-        cout << "Occupied Slots : " << count << endl;
-        cout << "Vacant Slots   : " << capacity - count << endl;
-
-        if (count == capacity)
-            cout << "ALERT: Buffer is FULL!\n";
-        else if (count * 100 >= capacity * 80)
-            cout << "WARNING: Buffer is nearly full!\n";
+// Display all router statuses
+    void showNetworkStatus(){
+        for(int i=0;i<3;i++){
+            routers[i]->showStatus(i+1);
+        }
     }
 
-    void showBuffer()
-    {
-        cout << "Packets in Buffer: ";
-
-        if (count == 0)
-            cout << "Empty";
-
-        int index = front;
-
-        for (int i = 0; i < count; i++)
-        {
-            cout << queue[index].id << " ";
-            index = (index + 1) % capacity;
+    // Display final results
+    void showResults(){
+        int totalProcessed=0;
+        int remaining=0;
+        for (int i=0;i<3;i++){
+            totalProcessed+=routers[i]->processed;
+            remaining+=routers[i]->count;
         }
 
-        cout << endl;
-    }
+        cout<<"\n========== FINAL RESULTS ==========\n";
 
-    void showResults()
-    {
-        cout << "\n===== FINAL RESULTS =====\n";
-        cout << "Generated Packets : " << generated << endl;
-        cout << "Processed Packets : " << processed << endl;
-        cout << "Lost Packets      : " << lost << endl;
-        cout << "Packets Remaining : " << count << endl;
-        cout << "Congestion Alerts : " << congestion << endl;
+        cout<<"Generated: " << generated << endl;
+        cout<<"Redirected: " << redirected << endl;
+        cout<<"Processed: " << totalProcessed << endl;
+        cout<<"Dropped: " << dropped << endl;
+        cout<<"Remaining: " << remaining << endl;
 
-        if (generated > 0)
-            cout << "Packet Loss Rate  : "
-                 << lost * 100.0 / generated << "%\n";
+        cout<<"\nPacket Accounting: ";
+
+        if(generated==totalProcessed+dropped+remaining){
+            cout<<"Correct";
+        }
+        else{
+            cout<<"Incorrect";
+        }
+        cout<<endl;
     }
+};
