@@ -1,35 +1,19 @@
-int selectTrafficMode(int mode, int arrivals, int processing)
-{
-    int packets = arrivals;
-
-    switch (mode)
-    {
-        case 1:
-            // Low Traffic
-            packets = 1;
-            break;
-
-        case 2:
-            // Heavy Traffic
-            packets = processing + 3;
-            break;
-
-        case 3:
-            // Random Traffic
-            if (arrivals > 0)
-            {
-                packets = rand() % (arrivals + 1);
-            }
-            else
-            {
-                packets = 0;
-            }
-            break;
-
-        default:
-            packets = arrivals;
-    }
-
-    return packets;
+int selectTrafficMode(){
+    int choice;
+    cout<<"\n1. Low Traffic";
+    cout<<"\n2. High Traffic";
+    cout<<"\n3. Random Traffic";
+    cout<<"\nEnter choice: ";
+    cin>>choice;
+    return choice;
 }
 
+int generateTraffic(int mode, int arrivals){
+    if(mode==1){
+        return 1;
+    }
+    if(mode==2){
+        return arrivals;
+    }
+    return rand() % (arrivals + 1);
+}
